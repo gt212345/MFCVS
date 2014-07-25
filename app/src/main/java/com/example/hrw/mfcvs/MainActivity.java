@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
         public Camera getCameraInstance() {
             Camera c = null;
             try {
-                c = openFrontFacingCameraGingerbread();
+                c = openFrontFacingCamera();
             }
             catch (Exception e){
                 Log.w("getfrontcamera",e.toString());
@@ -88,7 +88,7 @@ public class MainActivity extends Activity {
             return c;
         }
 
-        private Camera openFrontFacingCameraGingerbread() {
+        private Camera openFrontFacingCamera() {
             int cameraCount;
             Camera cam = null;
             Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
