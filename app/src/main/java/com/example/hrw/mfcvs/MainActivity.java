@@ -22,6 +22,11 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import net.majorkernelpanic.streaming.Session;
+import net.majorkernelpanic.streaming.SessionBuilder;
+import net.majorkernelpanic.streaming.audio.AudioQuality;
+import net.majorkernelpanic.streaming.video.VideoQuality;
+
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
@@ -64,17 +69,19 @@ public class MainActivity extends Activity {
      */
     public static class PlaceholderFragment extends Fragment implements SurfaceHolder.Callback, View.OnClickListener {
         private Camera mCamera;
-        SurfaceView previewSurfaceView;
-        SurfaceHolder previewSurfaceHolder;
-        VideoCodec videoCodec;
-        Button record;
-        boolean isNotRec = true;
+        private SurfaceView previewSurfaceView;
+        private SurfaceHolder previewSurfaceHolder;
+        private VideoCodec videoCodec;
+        private Button record;
+        private boolean isNotRec = true;
+        Session mSession;
 
         @Override
         public void onActivityCreated(Bundle savedInstanceState) {
             super.onActivityCreated(savedInstanceState);
 //          Runtime.getRuntime().exec("su");
             mCamera = getCameraInstance();
+
             record = (Button)getView().findViewById(R.id.record);
             record.setOnClickListener(this);
             if(mCamera == null){
@@ -131,24 +138,24 @@ public class MainActivity extends Activity {
 
         @Override
         public void surfaceCreated(SurfaceHolder surfaceHolder) {
-
         }
 
         @Override
         public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i2, int i3) {
             try {
                 mCamera.setPreviewDisplay(surfaceHolder);
-                mCamera.setDisplayOrientation(90);
-                mCamera.startPreview();
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            mCamera.setDisplayOrientation(90);
+                mCamera.startPreview();
         }
 
         @Override
         public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
             mCamera.release();
         }
+
 
         @Override
         public void onClick(View view) {

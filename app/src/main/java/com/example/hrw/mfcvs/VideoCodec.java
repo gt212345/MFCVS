@@ -12,7 +12,6 @@ public class VideoCodec {
     Camera mCamera;
     String filename;
 
-
     public VideoCodec(String filename,Camera mCamera){
         mrec = new MediaRecorder();
         this.filename = filename;
@@ -42,4 +41,5 @@ public class VideoCodec {
         mrec.reset();
         mrec.release();
     }
+
 }

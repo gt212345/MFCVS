@@ -67,7 +67,7 @@ public class SessionBuilder {
 	private Context mContext;
 	private int mVideoEncoder = VIDEO_H263; 
 	private int mAudioEncoder = AUDIO_AMRNB;
-	private int mCamera = CameraInfo.CAMERA_FACING_BACK;
+	private int mCamera = CameraInfo.CAMERA_FACING_FRONT;
 	private int mTimeToLive = 64;
 	private int mOrientation = 0;
 	private boolean mFlash = false;
