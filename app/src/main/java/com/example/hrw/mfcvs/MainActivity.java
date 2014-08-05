@@ -79,7 +79,7 @@ public class MainActivity extends Activity {
         private Camera mCamera;
         private SurfaceView previewSurfaceView;
         private SurfaceHolder previewSurfaceHolder;
-        private VideoCodec videoCodec;
+        private VideoRecord videoRecord;
         private Button record,stream;
         private MediaPlayer mediaPlayer;
         private Context context;
@@ -105,7 +105,7 @@ public class MainActivity extends Activity {
             previewSurfaceView = (SurfaceView)getView().findViewById(R.id.surfaceview);
             previewSurfaceHolder = previewSurfaceView.getHolder();
             previewSurfaceHolder.addCallback(this);
-            videoCodec = new VideoCodec("test",mCamera);
+            videoRecord = new VideoRecord("test",mCamera);
             Map<String, String> headers = getRtspHeaders();
 //            Uri source = Uri.parse(RTSP_URL);
         }
@@ -195,14 +195,14 @@ public class MainActivity extends Activity {
                         Toast.makeText(getActivity(), "Record Start", Toast.LENGTH_SHORT).show();
                         isNotRec = false;
                         try {
-                            videoCodec.startEncoding();
+                            videoRecord.startEncoding();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                     } else {
                         Toast.makeText(getActivity(), "Record Stop", Toast.LENGTH_SHORT).show();
                         isNotRec = true;
-                        videoCodec.stopEncoding();
+                        videoRecord.stopEncoding();
                     }
                     break;
                 case R.id.stream:
