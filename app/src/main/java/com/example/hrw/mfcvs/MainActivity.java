@@ -3,12 +3,16 @@ package com.example.hrw.mfcvs;
 import android.app.Activity;
 import android.app.ActionBar;
 import android.app.Fragment;
+import android.content.Context;
 import android.hardware.Camera;
 import android.media.CamcorderProfile;
 import android.media.CameraProfile;
 import android.media.MediaCodec;
+import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -18,6 +22,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.os.Build;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.Toast;
@@ -28,6 +33,8 @@ import net.majorkernelpanic.streaming.audio.AudioQuality;
 import net.majorkernelpanic.streaming.video.VideoQuality;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 
@@ -37,6 +44,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
         if (savedInstanceState == null) {
             getFragmentManager().beginTransaction()
                     .add(R.id.container, new PlaceholderFragment())
@@ -72,18 +80,23 @@ public class MainActivity extends Activity {
         private SurfaceView previewSurfaceView;
         private SurfaceHolder previewSurfaceHolder;
         private VideoCodec videoCodec;
-        private Button record;
+        private Button record,stream;
+        private MediaPlayer mediaPlayer;
+        private Context context;
+        private String USERNAME,PASSWORD;
         private boolean isNotRec = true;
-        Session mSession;
 
         @Override
         public void onActivityCreated(Bundle savedInstanceState) {
             super.onActivityCreated(savedInstanceState);
 //          Runtime.getRuntime().exec("su");
+            context = getActivity().getApplicationContext();
+            mediaPlayer = new MediaPlayer();
             mCamera = getCameraInstance();
-
             record = (Button)getView().findViewById(R.id.record);
             record.setOnClickListener(this);
+            stream = (Button) getView().findViewById(R.id.stream);
+            stream.setOnClickListener(this);
             if(mCamera == null){
                 Toast.makeText(getActivity(),
                         "Fail to get Camera",
@@ -93,6 +106,8 @@ public class MainActivity extends Activity {
             previewSurfaceHolder = previewSurfaceView.getHolder();
             previewSurfaceHolder.addCallback(this);
             videoCodec = new VideoCodec("test",mCamera);
+            Map<String, String> headers = getRtspHeaders();
+//            Uri source = Uri.parse(RTSP_URL);
         }
 
         public Camera getCameraInstance() {
@@ -129,6 +144,20 @@ public class MainActivity extends Activity {
             return cam;
         }
 
+        private Map<String, String> getRtspHeaders() {
+            Map<String, String> headers = new HashMap<String, String>();
+            String basicAuthValue = getBasicAuthValue(USERNAME, PASSWORD);
+            headers.put("Authorization", basicAuthValue);
+            return headers;
+        }
+
+        private String getBasicAuthValue(String usr, String pwd) {
+            String credentials = usr + ":" + pwd;
+            int flags = Base64.URL_SAFE | Base64.NO_WRAP;
+            byte[] bytes = credentials.getBytes();
+            return "Basic " + Base64.encodeToString(bytes, flags);
+        }
+
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                 Bundle savedInstanceState) {
@@ -144,6 +173,7 @@ public class MainActivity extends Activity {
         public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i2, int i3) {
             try {
                 mCamera.setPreviewDisplay(surfaceHolder);
+                mediaPlayer.setDisplay(surfaceHolder);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -159,18 +189,24 @@ public class MainActivity extends Activity {
 
         @Override
         public void onClick(View view) {
-            if(isNotRec) {
-                Toast.makeText(getActivity(),"Record Start",Toast.LENGTH_SHORT).show();
-                isNotRec = false;
-                try {
-                    videoCodec.startEncoding();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }else{
-                Toast.makeText(getActivity(), "Record Stop", Toast.LENGTH_SHORT).show();
-                isNotRec = true;
-                videoCodec.stopEncoding();
+            switch (view.getId()) {
+                case R.id.record:
+                    if (isNotRec) {
+                        Toast.makeText(getActivity(), "Record Start", Toast.LENGTH_SHORT).show();
+                        isNotRec = false;
+                        try {
+                            videoCodec.startEncoding();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        Toast.makeText(getActivity(), "Record Stop", Toast.LENGTH_SHORT).show();
+                        isNotRec = true;
+                        videoCodec.stopEncoding();
+                    }
+                    break;
+                case R.id.stream:
+                    break;
             }
         }
     }
