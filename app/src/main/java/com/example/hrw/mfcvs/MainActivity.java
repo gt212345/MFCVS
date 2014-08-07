@@ -1,9 +1,12 @@
 package com.example.hrw.mfcvs;
 
 import android.app.Activity;
+import net.majorkernelpanic.streaming.gl.SurfaceView;
 import android.app.ActionBar;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
+import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
 import android.media.CamcorderProfile;
 import android.media.CameraProfile;
@@ -18,7 +21,6 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.os.Build;
@@ -44,14 +46,13 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
         if (savedInstanceState == null) {
             getFragmentManager().beginTransaction()
                     .add(R.id.container, new PlaceholderFragment())
                     .commit();
         }
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -75,39 +76,48 @@ public class MainActivity extends Activity {
     /**
      * A placeholder fragment containing a simple view.
      */
-    public static class PlaceholderFragment extends Fragment implements SurfaceHolder.Callback, View.OnClickListener {
+    public static class PlaceholderFragment extends Fragment implements SurfaceHolder.Callback, View.OnClickListener, Session.Callback {
+        private static final String TAG = "MainActivity";
         private Camera mCamera;
         private SurfaceView previewSurfaceView;
-        private SurfaceHolder previewSurfaceHolder;
         private VideoRecord videoRecord;
         private Button record,stream;
-        private MediaPlayer mediaPlayer;
         private Context context;
-        private String USERNAME,PASSWORD;
+        private Session session;
+        private String destIP = "";
         private boolean isNotRec = true;
+
 
         @Override
         public void onActivityCreated(Bundle savedInstanceState) {
             super.onActivityCreated(savedInstanceState);
 //          Runtime.getRuntime().exec("su");
             context = getActivity().getApplicationContext();
-            mediaPlayer = new MediaPlayer();
-            mCamera = getCameraInstance();
+//            mCamera = getCameraInstance();
             record = (Button)getView().findViewById(R.id.record);
             record.setOnClickListener(this);
             stream = (Button) getView().findViewById(R.id.stream);
             stream.setOnClickListener(this);
-            if(mCamera == null){
-                Toast.makeText(getActivity(),
-                        "Fail to get Camera",
-                        Toast.LENGTH_LONG).show();
-            }
+//            if(mCamera == null){
+//                Toast.makeText(getActivity(),
+//                        "Fail to get Camera",
+//                        Toast.LENGTH_LONG).show();
+//            }
             previewSurfaceView = (SurfaceView)getView().findViewById(R.id.surfaceview);
-            previewSurfaceHolder = previewSurfaceView.getHolder();
-            previewSurfaceHolder.addCallback(this);
-            videoRecord = new VideoRecord("test",mCamera);
-            Map<String, String> headers = getRtspHeaders();
-//            Uri source = Uri.parse(RTSP_URL);
+//            previewSurfaceHolder = previewSurfaceView.getHolder();
+//            previewSurfaceHolder.addCallback(this);
+//            videoRecord = new VideoRecord("test",mCamera);
+            session = SessionBuilder.getInstance()
+                    .setCallback(this)
+                    .setSurfaceView(previewSurfaceView)
+                    .setContext(context)
+                    .setAudioEncoder(SessionBuilder.AUDIO_AAC)
+                    .setAudioQuality(new AudioQuality(16000, 32000))
+                    .setVideoEncoder(SessionBuilder.VIDEO_H264)
+                    .setVideoQuality(new VideoQuality(720,480,30,5000000))
+                    .setDestination(destIP)
+                    .build();
+            previewSurfaceView.getHolder().addCallback(this);
         }
 
         public Camera getCameraInstance() {
@@ -144,19 +154,6 @@ public class MainActivity extends Activity {
             return cam;
         }
 
-        private Map<String, String> getRtspHeaders() {
-            Map<String, String> headers = new HashMap<String, String>();
-            String basicAuthValue = getBasicAuthValue(USERNAME, PASSWORD);
-            headers.put("Authorization", basicAuthValue);
-            return headers;
-        }
-
-        private String getBasicAuthValue(String usr, String pwd) {
-            String credentials = usr + ":" + pwd;
-            int flags = Base64.URL_SAFE | Base64.NO_WRAP;
-            byte[] bytes = credentials.getBytes();
-            return "Basic " + Base64.encodeToString(bytes, flags);
-        }
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -172,20 +169,54 @@ public class MainActivity extends Activity {
         @Override
         public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i2, int i3) {
             try {
-                mCamera.setPreviewDisplay(surfaceHolder);
-                mediaPlayer.setDisplay(surfaceHolder);
-            } catch (IOException e) {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            mCamera.setDisplayOrientation(90);
-                mCamera.startPreview();
+            session.startPreview();
+//                mCamera.setPreviewDisplay(surfaceHolder);
+//            mCamera.setDisplayOrientation(90);
+//                mCamera.startPreview();
         }
 
         @Override
         public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
-            mCamera.release();
+            session.stopPreview();
+            session.stop();
         }
 
+
+        @Override
+        public void onBitrateUpdate(long bitrate) {
+            Log.w(TAG,"Bitrate: "+bitrate);
+        }
+
+        @Override
+        public void onSessionError(int reason, int streamType, Exception e) {
+            Log.e(TAG, "An error occured", e);
+        }
+
+        @Override
+        public void onPreviewStarted() {
+            Log.w(TAG,"PreviewStarted");
+        }
+
+        @Override
+        public void onSessionConfigured() {
+            Log.w(TAG,"Session Configured");
+            Log.w(TAG,session.getSessionDescription());
+            session.start();
+        }
+
+        @Override
+        public void onSessionStarted() {
+            Log.w(TAG,"Stream Session Started");
+        }
+
+        @Override
+        public void onSessionStopped() {
+            Log.w(TAG,"Stream Session Stopped");
+        }
 
         @Override
         public void onClick(View view) {
@@ -206,6 +237,11 @@ public class MainActivity extends Activity {
                     }
                     break;
                 case R.id.stream:
+                    if (!session.isStreaming()) {
+                        session.configure();
+                    } else {
+                        session.stop();
+                    }
                     break;
             }
         }

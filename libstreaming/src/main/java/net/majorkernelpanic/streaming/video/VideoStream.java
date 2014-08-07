@@ -587,7 +587,7 @@ public abstract class VideoStream extends MediaStream {
 				}
 				parameters.setRecordingHint(true);
 				mCamera.setParameters(parameters);
-				mCamera.setDisplayOrientation(mOrientation);
+				mCamera.setDisplayOrientation(90);
 
 				try {
 					if (mMode == MODE_MEDIACODEC_API_2) {

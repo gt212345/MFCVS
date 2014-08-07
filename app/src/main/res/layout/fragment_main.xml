@@ -5,10 +5,10 @@
     tools:context=".MainActivity$PlaceholderFragment">
 
 
-<SurfaceView
-    android:id="@+id/surfaceview"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+    <net.majorkernelpanic.streaming.gl.SurfaceView
+        android:id="@+id/surfaceview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
     <Button
         android:layout_width="wrap_content"
