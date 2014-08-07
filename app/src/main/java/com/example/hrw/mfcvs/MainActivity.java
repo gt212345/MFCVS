@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
+import net.majorkernelpanic.streaming.rtsp.RtspClient;
 import android.media.CamcorderProfile;
 import android.media.CameraProfile;
 import android.media.MediaCodec;
@@ -38,6 +39,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class MainActivity extends Activity {
@@ -76,7 +79,7 @@ public class MainActivity extends Activity {
     /**
      * A placeholder fragment containing a simple view.
      */
-    public static class PlaceholderFragment extends Fragment implements SurfaceHolder.Callback, View.OnClickListener, Session.Callback {
+    public static class PlaceholderFragment extends Fragment implements SurfaceHolder.Callback, View.OnClickListener, Session.Callback, RtspClient.Callback {
         private static final String TAG = "MainActivity";
         private Camera mCamera;
         private SurfaceView previewSurfaceView;
@@ -84,9 +87,9 @@ public class MainActivity extends Activity {
         private Button record,stream;
         private Context context;
         private Session session;
-        private String destIP = "";
+        private String destIP = "192.168.1.277:1234";
         private boolean isNotRec = true;
-
+        private RtspClient rtspClient;
 
         @Override
         public void onActivityCreated(Bundle savedInstanceState) {
@@ -119,6 +122,9 @@ public class MainActivity extends Activity {
                     .setDestination(destIP)
                     .build();
             previewSurfaceView.getHolder().addCallback(this);
+            rtspClient = new RtspClient();
+            rtspClient.setSession(session);
+            rtspClient.setCallback(this);
         }
 
         public Camera getCameraInstance() {
@@ -178,7 +184,8 @@ public class MainActivity extends Activity {
         @Override
         public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
             session.stopPreview();
-            session.stop();
+            rtspClient.stopStream();
+//            session.stop();
         }
 
 
@@ -189,7 +196,7 @@ public class MainActivity extends Activity {
 
         @Override
         public void onSessionError(int reason, int streamType, Exception e) {
-            Log.e(TAG, "An error occured", e);
+            Log.e(TAG, "An error occured:"+String.valueOf(reason) + e.toString());
         }
 
         @Override
@@ -201,7 +208,7 @@ public class MainActivity extends Activity {
         public void onSessionConfigured() {
             Log.w(TAG,"Session Configured");
             Log.w(TAG,session.getSessionDescription());
-            session.start();
+//            session.start();
         }
 
         @Override
@@ -233,12 +240,33 @@ public class MainActivity extends Activity {
                     }
                     break;
                 case R.id.stream:
-                    if (!session.isStreaming()) {
-                        session.configure();
-                    } else {
-                        session.stop();
-                    }
+                    toggleStream();
                     break;
+            }
+        }
+
+        @Override
+        public void onRtspUpdate(int message, Exception exception) {
+            Log.w("onRtspUpdate",String.valueOf(message)+exception.toString());
+        }
+        public void toggleStream() {
+            if (!rtspClient.isStreaming()) {
+                String ip,port,path;
+
+                // We parse the URI written in the Editext
+//                Pattern uri = Pattern.compile("rtsp://(.+):?(\\d*)/(.+)");
+//                Matcher m = uri.matcher(destIP); m.find();
+//                ip = m.group(1);
+//                port = m.group(2);
+//                path = m.group(3);
+
+                rtspClient.setServerAddress("192.168.1.227", 1234);
+//                rtspClient.setStreamPath("/"+path);
+                rtspClient.startStream();
+
+            } else {
+                // Stops the stream and disconnects from the RTSP server
+                rtspClient.stopStream();
             }
         }
     }
