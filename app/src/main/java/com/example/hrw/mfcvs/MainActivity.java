@@ -42,6 +42,26 @@ import java.util.NoSuchElementException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/*
+ * Copyright (C) 2011-2014 GUIGUI Simon, fyhertz@gmail.com
+ *
+ * This file is part of libstreaming (https://github.com/fyhertz/libstreaming)
+ *
+ * This is a free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This source code is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this source code; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 
 public class MainActivity extends Activity {
 
@@ -251,7 +271,7 @@ public class MainActivity extends Activity {
         }
         public void toggleStream() {
             if (!rtspClient.isStreaming()) {
-                String ip,port,path;
+//                String ip,port,path;
 
                 // We parse the URI written in the Editext
 //                Pattern uri = Pattern.compile("rtsp://(.+):?(\\d*)/(.+)");
@@ -261,7 +281,7 @@ public class MainActivity extends Activity {
 //                path = m.group(3);
 
                 rtspClient.setServerAddress("192.168.1.227", 1234);
-//                rtspClient.setStreamPath("/"+path);
+                rtspClient.setStreamPath("/"+"stream");
                 rtspClient.startStream();
 
             } else {
