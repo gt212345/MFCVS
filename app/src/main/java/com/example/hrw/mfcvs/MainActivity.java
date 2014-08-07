@@ -110,6 +110,7 @@ public class MainActivity extends Activity {
             session = SessionBuilder.getInstance()
                     .setCallback(this)
                     .setSurfaceView(previewSurfaceView)
+                    .setPreviewOrientation(90)
                     .setContext(context)
                     .setAudioEncoder(SessionBuilder.AUDIO_AAC)
                     .setAudioQuality(new AudioQuality(16000, 32000))
@@ -168,11 +169,6 @@ public class MainActivity extends Activity {
 
         @Override
         public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i2, int i3) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             session.startPreview();
 //                mCamera.setPreviewDisplay(surfaceHolder);
 //            mCamera.setDisplayOrientation(90);
