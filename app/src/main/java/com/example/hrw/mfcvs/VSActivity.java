@@ -2,21 +2,15 @@ package com.example.hrw.mfcvs;
 
 import android.app.Activity;
 import net.majorkernelpanic.streaming.gl.SurfaceView;
-import android.app.ActionBar;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
-import android.graphics.drawable.Drawable;
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import net.majorkernelpanic.streaming.rtsp.RtspClient;
-import android.media.CamcorderProfile;
-import android.media.CameraProfile;
-import android.media.MediaCodec;
-import android.media.MediaPlayer;
+
 import android.media.MediaRecorder;
-import android.net.Uri;
 import android.os.Bundle;
-import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -24,28 +18,19 @@ import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.ViewGroup;
-import android.os.Build;
-import android.view.Window;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.Toast;
-
 import net.majorkernelpanic.streaming.Session;
 import net.majorkernelpanic.streaming.SessionBuilder;
 import net.majorkernelpanic.streaming.audio.AudioQuality;
 import net.majorkernelpanic.streaming.video.VideoQuality;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /*
  * Copyright (C) 2011-2014 GUIGUI Simon, fyhertz@gmail.com
  *
- * This file is part of libstreaming (https://github.com/fyhertz/libstreaming)
+ * This project contain libstreaming (https://github.com/fyhertz/libstreaming)
  *
  * This is a free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,7 +48,7 @@ import java.util.regex.Pattern;
  */
 
 
-public class MainActivity extends Activity {
+public class VSActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,37 +84,37 @@ public class MainActivity extends Activity {
     /**
      * A placeholder fragment containing a simple view.
      */
-    public static class PlaceholderFragment extends Fragment implements SurfaceHolder.Callback, View.OnClickListener, Session.Callback, RtspClient.Callback {
-        private static final String TAG = "MainActivity";
+    public static class PlaceholderFragment extends Fragment implements SurfaceHolder.Callback, View.OnClickListener, Session.Callback, RtspClient.Callback, Camera.PreviewCallback {
+        private static final String TAG = "VSActivity";
         private Camera mCamera;
         private SurfaceView previewSurfaceView;
         private VideoRecord videoRecord;
         private Button record,stream;
         private Context context;
         private Session session;
+        private int frameSize;
         private String destIP = "192.168.1.277:1234";
         private boolean isNotRec = true;
         private RtspClient rtspClient;
+        private VideoCodec videoCodec;
+        private SurfaceHolder previewSurfaceHolder;
+
+        @Override
+        public void onStop() {
+            super.onStop();
+            videoCodec.close();
+        }
 
         @Override
         public void onActivityCreated(Bundle savedInstanceState) {
             super.onActivityCreated(savedInstanceState);
 //          Runtime.getRuntime().exec("su");
+            useCamTest();
             context = getActivity().getApplicationContext();
-//            mCamera = getCameraInstance();
             record = (Button)getView().findViewById(R.id.record);
             record.setOnClickListener(this);
             stream = (Button) getView().findViewById(R.id.stream);
             stream.setOnClickListener(this);
-//            if(mCamera == null){
-//                Toast.makeText(getActivity(),
-//                        "Fail to get Camera",
-//                        Toast.LENGTH_LONG).show();
-//            }
-            previewSurfaceView = (SurfaceView)getView().findViewById(R.id.surfaceview);
-//            previewSurfaceHolder = previewSurfaceView.getHolder();
-//            previewSurfaceHolder.addCallback(this);
-//            videoRecord = new VideoRecord("test",mCamera);
             session = SessionBuilder.getInstance()
                     .setCallback(this)
                     .setSurfaceView(previewSurfaceView)
@@ -147,13 +132,31 @@ public class MainActivity extends Activity {
             rtspClient.setCallback(this);
         }
 
-        public Camera getCameraInstance() {
+        private void getCamSize(){
+            Camera.Parameters camp = mCamera.getParameters();
+            int pixel = ImageFormat.getBitsPerPixel(camp.getPictureFormat())/8;
+            Camera.Size cams = camp.getPreviewSize();
+            frameSize = cams.width * cams.height * pixel;
+            Log.w(TAG,String.valueOf(frameSize));
+        }
+
+        private void useCamTest() {
+            videoCodec = new VideoCodec();
+            mCamera = getCameraInstance();
+            getCamSize();
+            previewSurfaceView = (SurfaceView) getView().findViewById(R.id.surfaceview);
+            previewSurfaceHolder = previewSurfaceView.getHolder();
+            previewSurfaceHolder.addCallback(this);
+//            videoRecord = new VideoRecord("test", mCamera);
+        }
+
+        private Camera getCameraInstance() {
             Camera c = null;
             try {
                 c = openFrontFacingCamera();
             }
             catch (Exception e){
-                Log.w("getfrontcamera",e.toString());
+                Log.w("get front camera",e.toString());
             }
             return c;
         }
@@ -195,17 +198,26 @@ public class MainActivity extends Activity {
 
         @Override
         public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i2, int i3) {
-            session.startPreview();
-//                mCamera.setPreviewDisplay(surfaceHolder);
-//            mCamera.setDisplayOrientation(90);
-//                mCamera.startPreview();
+//            session.startPreview();
+            try {
+                mCamera.setPreviewDisplay(surfaceHolder);
+                mCamera.getParameters().setPreviewSize(320,240);
+                mCamera.setParameters(mCamera.getParameters());
+                mCamera.addCallbackBuffer(new byte[151552]);
+                mCamera.setPreviewCallbackWithBuffer(this);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            mCamera.setDisplayOrientation(90);
+            mCamera.startPreview();
         }
 
         @Override
         public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
-            session.stopPreview();
-            rtspClient.stopStream();
+//            session.stopPreview();
+//            rtspClient.stopStream();
 //            session.stop();
+            mCamera.stopPreview();
         }
 
 
@@ -288,6 +300,12 @@ public class MainActivity extends Activity {
                 // Stops the stream and disconnects from the RTSP server
                 rtspClient.stopStream();
             }
+        }
+
+        @Override
+        public void onPreviewFrame(byte[] bytes, Camera camera) {
+            Log.w(TAG,"Start encode");
+            videoCodec.offerEncoder(bytes,0,bytes.length);
         }
     }
 }
