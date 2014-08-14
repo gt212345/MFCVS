@@ -325,7 +325,7 @@ public class RtspClient {
 				"Content-Length: " + body.length() + "\r\n" +
 				"Content-Type: application/sdp \r\n\r\n" +
 				body;
-		Log.i(TAG,request.substring(0, request.indexOf("\r\n")));
+		Log.i(TAG,request/*.substring(0, request.indexOf("\r\n"))*/);
 
 		mOutputStream.write(request.getBytes("UTF-8"));
 		mOutputStream.flush();

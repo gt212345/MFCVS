@@ -2,8 +2,11 @@ package com.example.hrw.mfcvs;
 
 import android.app.Activity;
 import net.majorkernelpanic.streaming.gl.SurfaceView;
+
+import android.app.AlertDialog;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
@@ -26,6 +29,7 @@ import net.majorkernelpanic.streaming.audio.AudioQuality;
 import net.majorkernelpanic.streaming.video.VideoQuality;
 
 import java.io.IOException;
+import java.util.List;
 
 /*
  * Copyright (C) 2011-2014 GUIGUI Simon, fyhertz@gmail.com
@@ -102,13 +106,14 @@ public class VSActivity extends Activity {
         @Override
         public void onStop() {
             super.onStop();
-            videoCodec.close();
+//            videoCodec.close();
         }
 
         @Override
         public void onActivityCreated(Bundle savedInstanceState) {
             super.onActivityCreated(savedInstanceState);
 //          Runtime.getRuntime().exec("su");
+            previewSurfaceView = (SurfaceView) getView().findViewById(R.id.surfaceview);
             useCamTest();
             context = getActivity().getApplicationContext();
             record = (Button)getView().findViewById(R.id.record);
@@ -120,7 +125,7 @@ public class VSActivity extends Activity {
                     .setSurfaceView(previewSurfaceView)
                     .setPreviewOrientation(90)
                     .setContext(context)
-                    .setAudioEncoder(SessionBuilder.AUDIO_AAC)
+                    .setAudioEncoder(SessionBuilder.AUDIO_NONE)
                     .setAudioQuality(new AudioQuality(16000, 32000))
                     .setVideoEncoder(SessionBuilder.VIDEO_H264)
                     .setVideoQuality(new VideoQuality(720,480,30,5000000))
@@ -144,9 +149,12 @@ public class VSActivity extends Activity {
             videoCodec = new VideoCodec();
             mCamera = getCameraInstance();
             getCamSize();
-            previewSurfaceView = (SurfaceView) getView().findViewById(R.id.surfaceview);
             previewSurfaceHolder = previewSurfaceView.getHolder();
             previewSurfaceHolder.addCallback(this);
+            List<Camera.Size> list = mCamera.getParameters().getSupportedPreviewSizes();
+            for(int aaa = 0 ; aaa < list.size() ; aaa++){
+                Log.w("Camera preview size" , "height: "+list.get(aaa).height+"width: "+list.get(aaa).width);
+            }
 //            videoRecord = new VideoRecord("test", mCamera);
         }
 
@@ -201,9 +209,12 @@ public class VSActivity extends Activity {
 //            session.startPreview();
             try {
                 mCamera.setPreviewDisplay(surfaceHolder);
-                mCamera.getParameters().setPreviewSize(320,240);
-                mCamera.setParameters(mCamera.getParameters());
-                mCamera.addCallbackBuffer(new byte[151552]);
+                Camera.Parameters para = mCamera.getParameters();
+                para.setPreviewSize(320, 240);
+                para.setPreviewFormat(ImageFormat.YV12);
+                para.setPictureSize(320, 240);
+                mCamera.setParameters(para);
+                mCamera.addCallbackBuffer(new byte[320*240*3/2]);
                 mCamera.setPreviewCallbackWithBuffer(this);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -211,6 +222,7 @@ public class VSActivity extends Activity {
             mCamera.setDisplayOrientation(90);
             mCamera.startPreview();
         }
+
 
         @Override
         public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
@@ -228,7 +240,10 @@ public class VSActivity extends Activity {
 
         @Override
         public void onSessionError(int reason, int streamType, Exception e) {
-            Log.e(TAG, "An error occured:"+String.valueOf(reason) + e.toString());
+//            Log.e(TAG, "An error occured:"+String.valueOf(reason) + e.toString());
+            if (e != null) {
+                logError(e.getMessage());
+            }
         }
 
         @Override
@@ -240,7 +255,7 @@ public class VSActivity extends Activity {
         public void onSessionConfigured() {
             Log.w(TAG,"Session Configured");
             Log.w(TAG,session.getSessionDescription());
-//            session.start();
+            session.start();
         }
 
         @Override
@@ -304,8 +319,25 @@ public class VSActivity extends Activity {
 
         @Override
         public void onPreviewFrame(byte[] bytes, Camera camera) {
-            Log.w(TAG,"Start encode");
-            videoCodec.offerEncoder(bytes,0,bytes.length);
+            Log.w(TAG,"Start encode: "+bytes.length);
+//            byte[] temp1 = new byte[151552];
+//            for(int i = 0 ; i < 151552 ; i++){
+//                temp1[i] = bytes[i];
+//            }
+            videoCodec.offerEncoder(bytes, 0);
+            mCamera.addCallbackBuffer(bytes);
+        }
+
+
+        /** Displays a popup to report the eror to the user */
+        private void logError(final String msg) {
+            final String error = (msg == null) ? "Error unknown" : msg;
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setMessage(error).setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {}
+            });
+            AlertDialog dialog = builder.create();
+            dialog.show();
         }
     }
 }

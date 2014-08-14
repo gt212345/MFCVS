@@ -41,17 +41,16 @@ public class VideoCodec {
     }
 
     // called from Camera.setPreviewCallbackWithBuffer(...) in other class
-    public void offerEncoder(byte[] input,int offset,int inputLength) {
+    public void offerEncoder(byte[] input1,int offset) {
         try {
             ByteBuffer[] inputBuffers = mediaCodec.getInputBuffers();
             ByteBuffer[] outputBuffers = mediaCodec.getOutputBuffers();
             int inputBufferIndex = mediaCodec.dequeueInputBuffer(-1);
             if (inputBufferIndex >= 0) {
                 ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
-                inputBuffer.limit(151552);
                 inputBuffer.clear();
-                inputBuffer.put(input,offset,inputLength);
-                mediaCodec.queueInputBuffer(inputBufferIndex, 0, input.length, 0, 0);
+                inputBuffer.put(input1,offset,input1.length);
+                mediaCodec.queueInputBuffer(inputBufferIndex, 0, input1.length, 0, 0);
             }
 
             MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
